@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>さやかさんの万年日記帳 (同期&バックアップ版)</title>
+    <title>さやかさんの万年日記帳 (完成版)</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -47,6 +47,19 @@
 
             let allMonthlyItems = [];
 
+            // 今表示している月の全データを取得
+            const querySnapshot = await getDocs(collection(db, "diaries"));
+            querySnapshot.forEach((doc) => {
+                const dateKey = doc.id; // "2026-02-22"
+                if (dateKey.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
+                    const items = doc.data().items || [];
+                    items.forEach((item, idx) => {
+                        allMonthlyItems.push({ date: dateKey, index: idx, ...item });
+                    });
+                }
+            });
+
+            // カレンダー描画
             for (let d = 1; d <= lastDate; d++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const dayDiv = document.createElement('div');
@@ -63,15 +76,9 @@
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                 if (dateStr === todayStr) dayDiv.classList.add('today');
 
-                const docRef = doc(db, "diaries", dateStr);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const items = docSnap.data().items || [];
-                    if (items.length > 0) {
-                        dayDiv.innerHTML += '<div class="mark-container"><div class="mark-any"></div></div>';
-                        items.forEach((item, idx) => allMonthlyItems.push({ date: dateStr, index: idx, ...item }));
-                    }
+                // この日にデータがあるかチェック
+                if (allMonthlyItems.some(item => item.date === dateStr)) {
+                    dayDiv.innerHTML += '<div class="mark-container"><div class="mark-any"></div></div>';
                 }
 
                 dayDiv.onclick = () => {
@@ -82,32 +89,35 @@
                 calendarEl.appendChild(dayDiv);
             }
 
+            // 履歴（振り返り）の表示
             historyListEl.innerHTML = '';
             const fEvent = document.getElementById('filter-event').value;
             const fMood = document.getElementById('filter-mood').value;
             
             allMonthlyItems.sort((a, b) => b.date.localeCompare(a.date));
             allMonthlyItems.forEach(item => {
-                if ((fEvent === 'all' || item.event === fEvent) && (fMood === 'all' || item.category === fMood)) {
+                const matchEvent = (fEvent === 'all' || item.event === fEvent);
+                const matchMood = (fMood === 'all' || item.category === fMood);
+                
+                if (matchEvent && matchMood) {
                     const div = document.createElement('div');
                     div.className = 'history-item';
                     div.innerHTML = `
                         <button class="delete-btn" onclick="deleteItem('${item.date}', ${item.index})">×</button>
-                        <div class="history-header"><span class="history-date">${item.date} ${item.category}</span><span class="history-event">${item.event ? '【'+item.event+'】' : ''}</span></div>
+                        <div class="history-header">
+                            <span class="history-date">${item.date} ${item.category || ''}</span>
+                            <span class="history-event">${item.event ? '【'+item.event+'】' : ''}</span>
+                        </div>
                         <div class="history-content">${item.text}</div>`;
                     historyListEl.appendChild(div);
                 }
             });
         }
 
-        // バックアップ（ダウンロード）機能
         async function downloadBackup() {
             const querySnapshot = await getDocs(collection(db, "diaries"));
             let backupData = {};
-            querySnapshot.forEach((doc) => {
-                backupData[doc.id] = doc.data();
-            });
-
+            querySnapshot.forEach((doc) => { backupData[doc.id] = doc.data(); });
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -115,7 +125,7 @@
             a.download = `diary_backup_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            alert('バックアップファイルをダウンロードしました！大切に保管してくださいね。');
+            alert('バックアップを保存しました！');
         }
 
         async function saveData() {
@@ -156,6 +166,7 @@
     </script>
 
     <style>
+        /* スタイルはそのまま */
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; background: #fdf6f0; color: #444; padding-bottom: 50px; margin: 0; }
         .calendar-header { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 15px 0; width: 100%; }
         .nav-btn { background: #d88a8a; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 18px; }
@@ -175,34 +186,9 @@
         .backup-btn { background: #888; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-size: 14px; cursor: pointer; }
         .section-title { width: 92%; max-width: 450px; color: #d88a8a; margin-top: 30px; }
         .filter-group { display: flex; gap: 8px; width: 92%; max-width: 450px; margin-bottom: 15px; }
-        .list-container { width: 92%; max-width: 450px; }
+        .list-container { width: 92%; max-width: 450px; min-height: 100px; }
         .history-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-left: 5px solid #d88a8a; position: relative; }
         .history-header { display: flex; flex-direction: column; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px; }
         .history-date { font-weight: bold; font-size: 14px; color: #d88a8a; }
         .history-content { font-size: 15px; white-space: pre-wrap; line-height: 1.5; }
-        .delete-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #ddd; cursor: pointer; font-size: 22px; }
-    </style>
-</head>
-<body>
-    <div class="calendar-header">
-        <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
-        <h2 id="currentMonthYear"></h2>
-        <button class="nav-btn" onclick="changeMonth(1)">▶</button>
-    </div>
-    <div id="calendar"></div>
-    <div id="editor-area">
-        <h3 id="selected-date-label" style="margin-top:0; font-size: 18px;">日付を選択</h3>
-        <label>予定</label>
-        <select id="event-input">
-            <option value="">なし</option><option value="試合日">⚽ 試合日</option><option value="カウンセリング">👂 カウンセリング</option><option value="学校訪問">🏫 学校訪問</option>
-        </select>
-        <label>気分</label>
-        <select id="category-input"><option value="">なし</option><option value="😊 喜">😊 喜</option><option value="🎉 楽">🎉 楽</option><option value="😢 哀">😢 哀</option><option value="💢 怒">💢 怒</option></select>
-        <textarea id="diary-input" placeholder="内容を入力..."></textarea>
-        <button class="save-btn" onclick="saveData()">同期保存する</button>
-        <button class="backup-btn" onclick="downloadBackup()">📥 全データをPCに保存(バックアップ)</button>
-    </div>
-    <div class="section-title"><h3>🔍 振り返り</h3></div>
-    <div id="history-list" class="list-container"></div>
-</body>
-</html>
+        .delete-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #ddd; cursor: pointer; font-
