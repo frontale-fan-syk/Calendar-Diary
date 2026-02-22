@@ -16,7 +16,7 @@
         .sun, .holiday { color: #ff4d4d !important; background: #fff5f5; }
         .sat { color: #4d79ff; background: #f5f7ff; }
         .today { border: 2px solid #d88a8a !important; font-weight: bold; }
-        .selected { background: #fff0f0; border: 2px solid #d88a8a !important; }
+        .selected { background: #fffec8 !important; border: 2px solid #d88a8a !important; }
         .mark-any { width: 6px; height: 6px; background: #d88a8a; border-radius: 50%; margin-top: 2px; }
         #editor-area { margin-top: 20px; width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; }
         select, textarea { width: 100%; border-radius: 8px; border: 1px solid #ddd; padding: 12px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; background-color: #fcfcfc; }
@@ -24,124 +24,186 @@
         .save-btn { background: #d88a8a; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; }
         .backup-btn { background: #888; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-size: 14px; cursor: pointer; margin-top: 10px; }
         .section-title { width: 92%; max-width: 450px; color: #d88a8a; margin-top: 30px; }
+        .filter-group { display: flex; gap: 8px; width: 92%; max-width: 450px; margin-bottom: 15px; }
         .list-container { width: 92%; max-width: 450px; }
         .history-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-left: 5px solid #d88a8a; position: relative; }
-        /* エラー表示用 */
-        #debug-log { width: 92%; color: red; font-size: 12px; margin: 10px; white-space: pre-wrap; }
+        .history-header { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #d88a8a; }
+        .delete-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 18px; }
     </style>
 </head>
 <body>
-    <div id="debug-log"></div>
     <div class="calendar-header">
         <button class="nav-btn" id="prev-btn">◀</button>
-        <h2 id="currentMonthYear">読み込み中...</h2>
+        <h2 id="currentMonthYear"></h2>
         <button class="nav-btn" id="next-btn">▶</button>
     </div>
     <div id="calendar"></div>
     <div id="editor-area">
         <h3 id="selected-date-label">日付を選択してね</h3>
-        <select id="event-input"><option value="">予定なし</option><option value="試合日">⚽ 試合日</option><option value="カウンセリング">👂 カウンセリング</option></select>
-        <select id="category-input"><option value="">気分なし</option><option value="😊 喜">😊 喜</option><option value="🎉 楽">🎉 楽</option></select>
+        <label>予定</label>
+        <select id="event-input"><option value="">予定なし</option><option value="試合日">⚽ 試合日</option><option value="カウンセリング">👂 カウンセリング</option><option value="学校訪問">🏫 学校訪問</option></select>
+        <label>気分</label>
+        <select id="category-input"><option value="">気分なし</option><option value="😊 喜">😊 喜</option><option value="🎉 楽">🎉 楽</option><option value="😢 哀">😢 哀</option><option value="💢 怒">💢 怒</option></select>
         <textarea id="diary-input" placeholder="内容を入力..."></textarea>
         <button class="save-btn" id="save-btn">同期保存する</button>
         <button class="backup-btn" id="backup-btn">📥 全データを保存(バックアップ)</button>
     </div>
     <div class="section-title"><h3>🔍 振り返り</h3></div>
+    <div class="filter-group">
+        <select id="filter-event"><option value="all">すべての予定</option><option value="試合日">⚽ 試合日</option><option value="カウンセリング">👂 カウンセリング</option><option value="学校訪問">🏫 学校訪問</option></select>
+        <select id="filter-mood"><option value="all">すべての気分</option><option value="😊 喜">😊 喜</option><option value="🎉 楽">🎉 楽</option><option value="😢 哀">😢 哀</option><option value="💢 怒">💢 怒</option></select>
+    </div>
     <div id="history-list" class="list-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 【ここを自分のFirebase設定に書き換えてください！】
         const firebaseConfig = {
-          apiKey: "AIzaSyCKTYQlERzcbsLWng8Y6E3yKcuK8kn0r7U",
-          authDomain: "sayaka-diary.firebaseapp.com",
-          projectId: "sayaka-diary",
-          storageBucket: "sayaka-diary.firebasestorage.app",
-          messagingSenderId: "1095135376250",
-          appId: "1:1095135376250:web:5301396cba61e67bbfdcc3"
+            apiKey: "AIzaSyCKTYQlERzcbsLWng8Y6E3yKcuK8kn0r7U",
+            authDomain: "sayaka-diary.firebaseapp.com",
+            projectId: "sayaka-diary",
+            storageBucket: "sayaka-diary.firebasestorage.app",
+            messagingSenderId: "1095135376250",
+            appId: "1:1095135376250:web:5301396cba61e67bbfdcc3"
         };
 
-        function logError(msg) { document.getElementById('debug-log').innerText += msg + "\n"; }
-
-        let db;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-        } catch (e) { logError("Firebase接続失敗: " + e.message); }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         let currentViewDate = new Date();
         let selectedDateStr = "";
+        let allDiaryData = {}; // 全データを一時保存する場所
 
-        async function renderView() {
-            try {
-                const year = currentViewDate.getFullYear();
-                const month = currentViewDate.getMonth();
-                const monthStr = String(month + 1).padStart(2, '0');
-                document.getElementById('currentMonthYear').innerText = `${year}年 ${month + 1}月`;
+        const holidays2026 = { "01-01":"元日", "01-12":"成人の日", "02-11":"建国記念の日", "02-23":"天皇誕生日", "03-20":"春分の日", "04-29":"昭和の日", "05-03":"憲法記念日", "05-04":"みどりの日", "05-05":"こどもの日", "05-06":"振替休日", "07-20":"海の日", "08-11":"山の日", "09-21":"敬老の日", "09-22":"国民の休日", "09-23":"秋分の日", "10-12":"スポーツの日", "11-03":"文化の日", "11-23":"勤労感謝の日" };
 
-                const calendarEl = document.getElementById('calendar');
-                calendarEl.innerHTML = '<div class="weekday sun">日</div><div class="weekday">月</div><div class="weekday">火</div><div class="weekday">水</div><div class="weekday">木</div><div class="weekday">金</div><div class="weekday sat">土</div>';
+        // 1. カレンダーの見た目だけを先に描く（爆速表示用）
+        function renderCalendarOnly() {
+            const year = currentViewDate.getFullYear();
+            const month = currentViewDate.getMonth();
+            const monthStr = String(month + 1).padStart(2, '0');
+            document.getElementById('currentMonthYear').innerText = `${year}年 ${month + 1}月`;
 
-                // 1. まずカレンダーの枠だけ描画
-                const firstDay = new Date(year, month, 1).getDay();
-                const lastDate = new Date(year, month + 1, 0).getDate();
-                for (let i = 0; i < firstDay; i++) { calendarEl.innerHTML += '<div></div>'; }
+            const calendarEl = document.getElementById('calendar');
+            calendarEl.innerHTML = '<div class="weekday sun">日</div><div class="weekday">月</div><div class="weekday">火</div><div class="weekday">水</div><div class="weekday">木</div><div class="weekday">金</div><div class="weekday sat">土</div>';
 
-                for (let d = 1; d <= lastDate; d++) {
-                    const dateStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
-                    const dayDiv = document.createElement('div');
-                    dayDiv.className = 'day';
-                    dayDiv.id = "day-" + dateStr;
-                    dayDiv.innerText = d;
-                    const dayOfWeek = new Date(year, month, d).getDay();
-                    if (dayOfWeek === 0) dayDiv.classList.add('sun');
-                    if (dayOfWeek === 6) dayDiv.classList.add('sat');
-                    if (dateStr === selectedDateStr) dayDiv.classList.add('selected');
-                    dayDiv.onclick = () => { selectedDateStr = dateStr; renderView(); };
-                    calendarEl.appendChild(dayDiv);
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            for (let i = 0; i < firstDay; i++) { calendarEl.innerHTML += '<div></div>'; }
+
+            for (let d = 1; d <= lastDate; d++) {
+                const dateStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerText = d;
+                const dayOfWeek = new Date(year, month, d).getDay();
+                if (dayOfWeek === 0) dayDiv.classList.add('sun');
+                if (dayOfWeek === 6) dayDiv.classList.add('sat');
+                if (year === 2026 && holidays2026[dateStr.slice(5)]) dayDiv.classList.add('holiday');
+                if (dateStr === selectedDateStr) dayDiv.classList.add('selected');
+                
+                // データがある日に丸を付ける
+                if (allDiaryData[dateStr] && allDiaryData[dateStr].length > 0) {
+                    const mark = document.createElement('div');
+                    mark.className = 'mark-any';
+                    dayDiv.appendChild(mark);
                 }
 
-                // 2. そのあとデータを取ってきてマークを付ける
-                const historyListEl = document.getElementById('history-list');
-                historyListEl.innerHTML = "";
-                
-                const querySnapshot = await getDocs(collection(db, "diaries"));
-                querySnapshot.forEach((docSnap) => {
-                    const dateKey = docSnap.id;
-                    const items = docSnap.data().items || [];
-                    if (items.length > 0 && dateKey.startsWith(`${year}-${monthStr}`)) {
-                        const targetDay = document.getElementById("day-" + dateKey);
-                        if (targetDay) targetDay.innerHTML += '<div class="mark-any"></div>';
-                        
-                        items.forEach((item, idx) => {
-                            const div = document.createElement('div');
-                            div.className = 'history-item';
-                            div.innerHTML = `<strong>${dateKey} ${item.category || ''}</strong><br>${item.text}`;
-                            historyListEl.appendChild(div);
-                        });
-                    }
-                });
-            } catch (e) { logError("描画エラー: " + e.message); }
+                dayDiv.onclick = () => {
+                    selectedDateStr = dateStr;
+                    document.getElementById('selected-date-label').innerText = `${month + 1}月 ${d}日の記録`;
+                    renderCalendarOnly();
+                    updateHistoryList();
+                };
+                calendarEl.appendChild(dayDiv);
+            }
         }
 
-        // ボタンの設定
-        document.getElementById('prev-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() - 1); renderView(); };
-        document.getElementById('next-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() + 1); renderView(); };
+        // 2. 履歴リストを更新する
+        function updateHistoryList() {
+            const listEl = document.getElementById('history-list');
+            const fEvent = document.getElementById('filter-event').value;
+            const fMood = document.getElementById('filter-mood').value;
+            listEl.innerHTML = "";
+
+            // 日付順（新しい順）に並び替えて表示
+            Object.keys(allDiaryData).sort().reverse().forEach(date => {
+                allDiaryData[date].forEach((item, idx) => {
+                    if ((fEvent === 'all' || item.event === fEvent) && (fMood === 'all' || item.category === fMood)) {
+                        const div = document.createElement('div');
+                        div.className = 'history-item';
+                        div.innerHTML = `
+                            <div class="history-header">
+                                <span>${date} ${item.category || ''} ${item.event ? '【'+item.event+'】' : ''}</span>
+                                <button class="delete-btn" onclick="deleteItem('${date}', ${idx})">×</button>
+                            </div>
+                            <div style="white-space:pre-wrap;">${item.text}</div>
+                        `;
+                        listEl.appendChild(div);
+                    }
+                });
+            });
+        }
+
+        // 3. ネットからデータを取ってくる（一回だけ）
+        async function loadData() {
+            const querySnapshot = await getDocs(collection(db, "diaries"));
+            allDiaryData = {};
+            querySnapshot.forEach(docSnap => {
+                allDiaryData[docSnap.id] = docSnap.data().items || [];
+            });
+            renderCalendarOnly();
+            updateHistoryList();
+        }
+
+        // 保存機能
         document.getElementById('save-btn').onclick = async () => {
             const text = document.getElementById('diary-input').value;
-            if(!selectedDateStr || !text) return alert("日付選択と入力をしてね");
+            if(!selectedDateStr || !text) return alert("日付選択と入力をしてくださいね");
             const docRef = doc(db, "diaries", selectedDateStr);
             const snap = await getDoc(docRef);
             let items = snap.exists() ? snap.data().items : [];
-            items.push({ text: text, category: document.getElementById('category-input').value });
+            items.push({
+                text: text,
+                category: document.getElementById('category-input').value,
+                event: document.getElementById('event-input').value
+            });
             await setDoc(docRef, { items: items });
             document.getElementById('diary-input').value = "";
-            renderView();
+            await loadData(); // データを再読み込み
+            alert("保存しました！");
         };
 
-        renderView();
+        // 削除機能
+        window.deleteItem = async (date, index) => {
+            if(!confirm("この記録を消してもいいですか？")) return;
+            const docRef = doc(db, "diaries", date);
+            let items = allDiaryData[date];
+            items.splice(index, 1);
+            if (items.length === 0) await deleteDoc(docRef);
+            else await setDoc(docRef, { items: items });
+            await loadData();
+        };
+
+        // バックアップ
+        document.getElementById('backup-btn').onclick = () => {
+            const blob = new Blob([JSON.stringify(allDiaryData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `diary_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        };
+
+        // 月移動とフィルター
+        document.getElementById('prev-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() - 1); renderCalendarOnly(); };
+        document.getElementById('next-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() + 1); renderCalendarOnly(); };
+        document.getElementById('filter-event').onchange = updateHistoryList;
+        document.getElementById('filter-mood').onchange = updateHistoryList;
+
+        // 起動！
+        renderCalendarOnly();
+        loadData();
     </script>
 </body>
 </html>
