@@ -220,6 +220,12 @@
                 dayDiv.onclick = () => {
                     selectedDateStr = dateStr;
                     document.getElementById('selected-date-label').innerText = `${month + 1}月 ${d}日の記録`;
+                    
+                    // ★ここを修正！編集モード中なら、ラベルに「の編集」と付け足す
+                    if (window.editingInfo) {
+                        document.getElementById('selected-date-label').innerText = `${dateStr} の編集`;
+                    }
+
                     document.getElementById('filter-event').value = "none";
                     document.getElementById('filter-mood').value = "none";
                     renderCalendarOnly();
@@ -360,3 +366,4 @@
     </script>
 </body>
 </html>
+
