@@ -200,6 +200,11 @@
                 dayDiv.onclick = () => {
                     selectedDateStr = dateStr;
                     document.getElementById('selected-date-label').innerText = `${month + 1}月 ${d}日の記録`;
+
+                    // ★ 追加：日付をクリックした瞬間に、絞り込みを「指定なし」にリセットする
+                    document.getElementById('filter-event').value = "none";
+                    document.getElementById('filter-mood').value = "none";
+
                     renderCalendarOnly();
                     updateHistoryList();
                 };
@@ -296,5 +301,6 @@
     </script>
 </body>
 </html>
+
 
 
