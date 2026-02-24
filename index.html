@@ -118,8 +118,24 @@
     </div>
     <div class="section-title"><h3>🔍 振り返り</h3></div>
     <div class="filter-group">
-        <select id="filter-event"><option value="all">すべての予定</option><option value="試合日">⚽ 試合日</option><option value="カウンセリング">👂 カウンセリング</option><option value="学校訪問">🏫 学校訪問</option></select>
-        <select id="filter-mood"><option value="all">すべての気分</option><option value="😊 うれしい">😊 うれしい</option</option><option value="🤔 ふしぎ">🤔 ふしぎ</option></option><option value="😲 びっくり">😲 びっくり</option></option><option value="😣 ざんねん">😣 ざんねん</option>><option value="😞 かなしい">😞 かなしい</option><option value="😠 イライラ">😠 イライラ</option><option value="🌈 その他">🌈 その他</option></select>
+        <select id="filter-event">
+            <option value="none">ー (指定なし)</option>
+            <option value="all">すべての予定 (月間表示)</option>
+            <option value="試合日">⚽ 試合日</option>
+            <option value="カウンセリング">👂 カウンセリング</option>
+            <option value="学校訪問">🏫 学校訪問</option>
+        </select>
+        <select id="filter-mood">
+            <option value="none">ー (指定なし)</option>
+            <option value="all">すべての気分 (月間表示)</option>
+            <option value="😊 うれしい">😊 うれしい</option>
+            <option value="🤔 ふしぎ">🤔 ふしぎ</option>
+            <option value="😲 びっくり">😲 びっくり</option>
+            <option value="😣 ざんねん">😣 ざんねん</option>
+            <option value="😞 かなしい">😞 かなしい</option>
+            <option value="😠 イライラ">😠 イライラ</option>
+            <option value="🌈 その他">🌈 その他</option>
+        </select>
     </div>
     <div id="history-list" class="list-container"></div>
 
@@ -202,8 +218,8 @@
             const monthStr = String(currentViewDate.getMonth() + 1).padStart(2, '0');
             const currentMonthPrefix = `${year}-${monthStr}`;
 
-            // フィルター（絞り込み）が使われているかどうかの判定
-            const isFiltering = (fEvent !== 'all' || fMood !== 'all');
+            // 「ー (指定なし)」以外が選ばれていれば、月間絞り込みモードとする
+            const isFiltering = (fEvent !== 'none' || fMood !== 'none');
 
             Object.keys(allDiaryData).sort().reverse().forEach(date => {
                 let shouldShow = false;
@@ -212,13 +228,17 @@
                     // ルール2：絞り込み中は「今開いている月」のものをすべて対象にする
                     shouldShow = date.startsWith(currentMonthPrefix);
                 } else {
-                    // ルール1：絞り込みしていない時は「クリックした日（選択中の日）」だけを対象にする
+                    // ルール1：両方「ー」の時は「クリックした日」だけを対象にする
                     shouldShow = (date === selectedDateStr);
                 }
 
                 if (shouldShow) {
                     allDiaryData[date].forEach((item, idx) => {
-                        if ((fEvent === 'all' || item.event === fEvent) && (fMood === 'all' || item.category === fMood)) {
+                        // "none" や "all" の場合は制限をかけず、それ以外は一致するものだけ残す
+                        const matchEvent = (fEvent === 'none' || fEvent === 'all' || item.event === fEvent);
+                        const matchMood = (fMood === 'none' || fMood === 'all' || item.category === fMood);
+
+                        if (matchEvent && matchMood) {
                             const div = document.createElement('div');
                             div.className = 'history-item';
                             div.innerHTML = `<div class="history-header"><span>${date} ${item.category || ''} ${item.event ? '【'+item.event+'】' : ''}</span><button class="delete-btn" onclick="deleteItem('${date}', ${idx})">×</button></div><div style="white-space:pre-wrap;">${item.text}</div>`;
@@ -228,7 +248,6 @@
                 }
             });
         }
-
         async function loadData() {
             const querySnapshot = await getDocs(collection(db, "diaries"));
             allDiaryData = {};
@@ -277,4 +296,5 @@
     </script>
 </body>
 </html>
+
 
