@@ -196,15 +196,36 @@
             const fEvent = document.getElementById('filter-event').value;
             const fMood = document.getElementById('filter-mood').value;
             listEl.innerHTML = "";
+
+            // 現在表示している年と月を取得
+            const year = currentViewDate.getFullYear();
+            const monthStr = String(currentViewDate.getMonth() + 1).padStart(2, '0');
+            const currentMonthPrefix = `${year}-${monthStr}`;
+
+            // フィルター（絞り込み）が使われているかどうかの判定
+            const isFiltering = (fEvent !== 'all' || fMood !== 'all');
+
             Object.keys(allDiaryData).sort().reverse().forEach(date => {
-                allDiaryData[date].forEach((item, idx) => {
-                    if ((fEvent === 'all' || item.event === fEvent) && (fMood === 'all' || item.category === fMood)) {
-                        const div = document.createElement('div');
-                        div.className = 'history-item';
-                        div.innerHTML = `<div class="history-header"><span>${date} ${item.category || ''} ${item.event ? '【'+item.event+'】' : ''}</span><button class="delete-btn" onclick="deleteItem('${date}', ${idx})">×</button></div><div style="white-space:pre-wrap;">${item.text}</div>`;
-                        listEl.appendChild(div);
-                    }
-                });
+                let shouldShow = false;
+
+                if (isFiltering) {
+                    // ルール2：絞り込み中は「今開いている月」のものをすべて対象にする
+                    shouldShow = date.startsWith(currentMonthPrefix);
+                } else {
+                    // ルール1：絞り込みしていない時は「クリックした日（選択中の日）」だけを対象にする
+                    shouldShow = (date === selectedDateStr);
+                }
+
+                if (shouldShow) {
+                    allDiaryData[date].forEach((item, idx) => {
+                        if ((fEvent === 'all' || item.event === fEvent) && (fMood === 'all' || item.category === fMood)) {
+                            const div = document.createElement('div');
+                            div.className = 'history-item';
+                            div.innerHTML = `<div class="history-header"><span>${date} ${item.category || ''} ${item.event ? '【'+item.event+'】' : ''}</span><button class="delete-btn" onclick="deleteItem('${date}', ${idx})">×</button></div><div style="white-space:pre-wrap;">${item.text}</div>`;
+                            listEl.appendChild(div);
+                        }
+                    });
+                }
             });
         }
 
@@ -256,3 +277,4 @@
     </script>
 </body>
 </html>
+
