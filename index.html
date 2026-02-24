@@ -204,6 +204,12 @@
                 if (dayOfWeek === 6) dayDiv.classList.add('sat');
                 if (year === 2026 && holidays2026[dateStr.slice(5)]) dayDiv.classList.add('holiday');
                 if (dateStr === selectedDateStr) dayDiv.classList.add('selected');
+
+                // ★ これを追加：今日の日付に「today」クラスをつける
+                const realToday = new Date();
+                const realTodayStr = `${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, '0')}-${String(realToday.getDate()).padStart(2, '0')}`;
+                if (dateStr === realTodayStr) dayDiv.classList.add('today');
+
                 if (allDiaryData[dateStr] && allDiaryData[dateStr].length > 0) {
                     const mark = document.createElement('div');
                     mark.className = 'mark-any';
@@ -322,7 +328,23 @@
         document.getElementById('filter-event').onchange = updateHistoryList;
         document.getElementById('filter-mood').onchange = updateHistoryList;
 
+        // 1. まずカレンダーを描画
         renderCalendarOnly();
+
+        // 2. 「今日」の日付を取得して文字列にする (例: "2026-02-24")
+        const today = new Date();
+        const tYear = today.getFullYear();
+        const tMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const tDay = String(today.getDate()).padStart(2, '0');
+        selectedDateStr = `${tYear}-${tMonth}-${tDay}`;
+
+        // 3. ラベル（日付の表示）を更新して、履歴を再描画
+        document.getElementById('selected-date-label').innerText = `${today.getMonth() + 1}月 ${today.getDate()}日の記録`;
+        
+        // 4. カレンダーの「今日」に選択状態の色をつけるために再描画
+        renderCalendarOnly();
+        updateHistoryList();
     </script>
 </body>
 </html>
+
