@@ -289,10 +289,24 @@
         window.editItem = (date, index) => {
             const item = allDiaryData[date][index];
             selectedDateStr = date;
+            
+            // タイトルと日付変更用のカレンダー入力
+            document.getElementById('selected-date-label').innerHTML = `
+                <span id="display-date">${date}</span> の編集
+                <input type="date" id="date-changer" value="${date}" 
+                       style="width:40px; height:30px; padding:0; margin-left:10px; border:none; background:none; cursor:pointer;">
+            `;
+
+            // 日付変更くんが操作された時の処理
+            document.getElementById('date-changer').onchange = (e) => {
+                selectedDateStr = e.target.value;
+                document.getElementById('display-date').innerText = selectedDateStr;
+            };
+
             document.getElementById('event-input').value = item.event || "";
             document.getElementById('category-input').value = item.category || "";
             document.getElementById('diary-input').value = item.text;
-            document.getElementById('selected-date-label').innerText = `${date} の編集`;
+            
             window.editingInfo = { date: date, index: index };
             document.getElementById('editor-area').style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
@@ -300,8 +314,20 @@
 
         document.getElementById('fab-btn').onclick = () => {
             if (!selectedDateStr) return alert("まずはカレンダーの日付を選んでね！");
-            window.editingInfo = null; // 新規作成モード
+            window.editingInfo = null; 
             document.getElementById('diary-input').value = "";
+            
+            // 新規の時も日付変更ボタンを出す
+            document.getElementById('selected-date-label').innerHTML = `
+                <span id="display-date">${selectedDateStr}</span> の記録
+                <input type="date" id="date-changer" value="${selectedDateStr}" 
+                       style="width:40px; height:30px; padding:0; margin-left:10px; border:none; background:none; cursor:pointer;">
+            `;
+            document.getElementById('date-changer').onchange = (e) => {
+                selectedDateStr = e.target.value;
+                document.getElementById('display-date').innerText = selectedDateStr;
+            };
+
             document.getElementById('editor-area').style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
         };
@@ -366,4 +392,5 @@
     </script>
 </body>
 </html>
+
 
