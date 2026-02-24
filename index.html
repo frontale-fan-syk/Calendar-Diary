@@ -5,23 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sayaka's Diary</title>
     <style>
-        /* 全体デザイン：淡い水色（リラックスできる色） */
+        /* 全体デザイン */
         body { 
             font-family: -apple-system, sans-serif; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            background: #e6f7ff; /* 画面全体：ごく淡い水色 */
+            background: #e6f7ff; 
             color: #333; 
-            padding-bottom: 50px; 
+            padding-bottom: 100px; /* ボタンが被らないよう余白追加 */
             margin: 0; 
         }
         
-        /* 🔒 ロック画面：鮮やかなフロンターレブルー */
+        /* 🔒 ロック画面 */
         #lock-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #00a0e9; /* ロック画面：フロンターレっぽい鮮やかな青 */
-            color: white;
+            background: #00a0e9; color: white;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 9999; transition: 0.5s;
         }
@@ -59,12 +58,27 @@
         .selected { background: #ccebff !important; border: 2px solid #0078d4 !important; }
         .mark-any { width: 6px; height: 6px; background: #00a0e9; border-radius: 50%; margin-top: 2px; }
         
-        /* 入力エリア */
+        /* 浮き上がる入力エリア */
         #editor-area { 
-            margin-top: 20px; width: 92%; max-width: 450px; background: white; 
-            padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
-            box-sizing: border-box; 
+            display: none; /* 最初は隠す */
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 92%; max-width: 400px; background: white; 
+            padding: 20px; border-radius: 15px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2); 
+            box-sizing: border-box; z-index: 1000;
         }
+        #overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 999;
+        }
+        .fab {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; background: #00a0e9; color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 30px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,160,233,0.4);
+            z-index: 500; border: none; font-weight: bold;
+        }
+
         select, textarea { 
             width: 100%; border-radius: 8px; border: 1px solid #cce0ff; padding: 12px; 
             box-sizing: border-box; font-size: 16px; margin-bottom: 15px; background-color: #fcfdff; 
@@ -95,12 +109,16 @@
         <button id="unlock-btn">Go Frontale!</button>
     </div>
 
+    <div id="overlay"></div>
+    <button class="fab" id="fab-btn">＋</button>
+
     <div class="calendar-header">
         <button class="nav-btn" id="prev-btn">◀</button>
         <h2 id="currentMonthYear"></h2>
         <button class="nav-btn" id="next-btn">▶</button>
     </div>
     <div id="calendar"></div>
+
     <div id="editor-area">
         <h3 id="selected-date-label">日付を選択してね</h3>
         <label>予定</label>
@@ -116,6 +134,7 @@
         <button class="save-btn" id="save-btn">同期保存する</button>
         <button class="backup-btn" id="backup-btn">📥 全データを保存(バックアップ)</button>
     </div>
+
     <div class="section-title"><h3>🔍 振り返り</h3></div>
     <div class="filter-group">
         <select id="filter-event">
@@ -128,13 +147,7 @@
         <select id="filter-mood">
             <option value="none">ー (指定なし)</option>
             <option value="all">すべての気分 (月間表示)</option>
-            <option value="😊 うれしい">😊 うれしい</option>
-            <option value="🤔 ふしぎ">🤔 ふしぎ</option>
-            <option value="😲 びっくり">😲 びっくり</option>
-            <option value="😣 ざんねん">😣 ざんねん</option>
-            <option value="😞 かなしい">😞 かなしい</option>
-            <option value="😠 イライラ">😠 イライラ</option>
-            <option value="🌈 その他">🌈 その他</option>
+            <option value="😊 うれしい">😊 うれしい</option><option value="🤔 ふしぎ">🤔 ふしぎ</option><option value="😲 びっくり">😲 びっくり</option><option value="😣 ざんねん">😣 ざんねん</option><option value="😞 かなしい">😞 かなしい</option><option value="😠 イライラ">😠 イライラ</option><option value="🌈 その他">🌈 その他</option>
         </select>
     </div>
     <div id="history-list" class="list-container"></div>
@@ -155,7 +168,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 🔑 パスワード設定（ここに自分の好きな文字を！）
         const CORRECT_PASSWORD = "9*#FgYJZF3!MI%5@80"; 
 
         document.getElementById('unlock-btn').onclick = () => {
@@ -200,8 +212,8 @@
                 dayDiv.onclick = () => {
                     selectedDateStr = dateStr;
                     document.getElementById('selected-date-label').innerText = `${month + 1}月 ${d}日の記録`;
-
-                    // ★ 追加：日付をクリックした瞬間に、絞り込みを「指定なし」にリセットする
+                    
+                    // 日付クリックで検索をリセット
                     document.getElementById('filter-event').value = "none";
                     document.getElementById('filter-mood').value = "none";
 
@@ -218,28 +230,22 @@
             const fMood = document.getElementById('filter-mood').value;
             listEl.innerHTML = "";
 
-            // 現在表示している年と月を取得
             const year = currentViewDate.getFullYear();
             const monthStr = String(currentViewDate.getMonth() + 1).padStart(2, '0');
             const currentMonthPrefix = `${year}-${monthStr}`;
 
-            // 「ー (指定なし)」以外が選ばれていれば、月間絞り込みモードとする
             const isFiltering = (fEvent !== 'none' || fMood !== 'none');
 
             Object.keys(allDiaryData).sort().reverse().forEach(date => {
                 let shouldShow = false;
-
                 if (isFiltering) {
-                    // ルール2：絞り込み中は「今開いている月」のものをすべて対象にする
                     shouldShow = date.startsWith(currentMonthPrefix);
                 } else {
-                    // ルール1：両方「ー」の時は「クリックした日」だけを対象にする
                     shouldShow = (date === selectedDateStr);
                 }
 
                 if (shouldShow) {
                     allDiaryData[date].forEach((item, idx) => {
-                        // "none" や "all" の場合は制限をかけず、それ以外は一致するものだけ残す
                         const matchEvent = (fEvent === 'none' || fEvent === 'all' || item.event === fEvent);
                         const matchMood = (fMood === 'none' || fMood === 'all' || item.category === fMood);
 
@@ -253,12 +259,30 @@
                 }
             });
         }
+
         async function loadData() {
             const querySnapshot = await getDocs(collection(db, "diaries"));
             allDiaryData = {};
             querySnapshot.forEach(docSnap => { allDiaryData[docSnap.id] = docSnap.data().items || []; });
             renderCalendarOnly();
             updateHistoryList();
+        }
+
+        // ＋ボタンの処理
+        document.getElementById('fab-btn').onclick = () => {
+            if (!selectedDateStr) return alert("まずはカレンダーの日付を選んでね！");
+            document.getElementById('editor-area').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        };
+
+        // 背景クリックで閉じる
+        document.getElementById('overlay').onclick = () => {
+            closeEditor();
+        };
+
+        function closeEditor() {
+            document.getElementById('editor-area').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
         }
 
         document.getElementById('save-btn').onclick = async () => {
@@ -270,6 +294,7 @@
             items.push({ text: text, category: document.getElementById('category-input').value, event: document.getElementById('event-input').value });
             await setDoc(docRef, { items: items });
             document.getElementById('diary-input').value = "";
+            closeEditor(); // 保存したら閉じる
             await loadData();
             alert("保存しました！");
         };
@@ -292,8 +317,8 @@
             a.click();
         };
 
-        document.getElementById('prev-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() - 1); renderCalendarOnly(); };
-        document.getElementById('next-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() + 1); renderCalendarOnly(); };
+        document.getElementById('prev-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() - 1); renderCalendarOnly(); updateHistoryList(); };
+        document.getElementById('next-btn').onclick = () => { currentViewDate.setMonth(currentViewDate.getMonth() + 1); renderCalendarOnly(); updateHistoryList(); };
         document.getElementById('filter-event').onchange = updateHistoryList;
         document.getElementById('filter-mood').onchange = updateHistoryList;
 
@@ -301,6 +326,3 @@
     </script>
 </body>
 </html>
-
-
-
