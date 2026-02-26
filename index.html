@@ -128,7 +128,16 @@
             <option value="学校訪問">🏫 学校訪問</option>
         </select>
         <label>気分</label>
-        <select id="category-input"><option value="">気分なし</option><option value="😊 うれしい">😊 うれしい</option><option value="🤔 ふしぎ">🤔 ふしぎ</option><option value="😲 びっくり">😲 びっくり</option><option value="😣 ざんねん">😣 ざんねん</option><option value="😞 かなしい">😞 かなしい</option><option value="😠 イライラ">😠 イライラ</option><option value="🌈 その他">🌈 その他</option></select>
+        <select id="category-input">
+            <option value="">気分なし</option>
+            <option value="😊 うれしい">😊 うれしい</option>
+            <option value="🤔 ふしぎ">🤔 ふしぎ</option>
+            <option value="😲 びっくり">😲 びっくり</option>
+            <option value="😣 ざんねん">😣 ざんねん</option>
+            <option value="😞 もやもや">😞 もやもや</option>
+            <option value="😠 イライラ">😠 イライラ</option>
+            <option value="🌈 その他">🌈 その他</option>
+        </select>
         <textarea id="diary-input" placeholder="今日の出来事は？"></textarea>
         <button class="save-btn" id="save-btn">同期保存する</button>
         <button class="backup-btn" id="backup-btn">📥 全データを保存(バックアップ)</button>
@@ -146,7 +155,13 @@
         <select id="filter-mood">
             <option value="none">ー (指定なし)</option>
             <option value="all">すべての気分 (月間表示)</option>
-            <option value="😊 うれしい">😊 うれしい</option><option value="🤔 ふしぎ">🤔 ふしぎ</option><option value="😲 びっくり">😲 びっくり</option><option value="😣 ざんねん">😣 ざんねん</option><option value="😞 かなしい">😞 かなしい</option><option value="😠 イライラ">😠 イライラ</option><option value="🌈 その他">🌈 その他</option>
+            <option value="😊 うれしい">😊 うれしい</option>
+            <option value="🤔 ふしぎ">🤔 ふしぎ</option>
+            <option value="😲 びっくり">😲 びっくり</option>
+            <option value="😣 ざんねん">😣 ざんねん</option>
+            <option value="😞 もやもや">😞 もやもや</option>
+            <option value="😠 イライラ">😠 イライラ</option>
+            <option value="🌈 その他">🌈 その他</option>
         </select>
     </div>
     <div id="history-list" class="list-container"></div>
@@ -392,5 +407,6 @@
     </script>
 </body>
 </html>
+
 
 
